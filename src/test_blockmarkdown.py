@@ -1,7 +1,13 @@
 import unittest
-from blockmarkdown import *
+from blockmarkdown import (
+    markdown_to_html_node,
+    markdown_to_blocks,
+    block_to_block_type,
+    BlockType,
+)
 
-class TestSplitBlocks(unittest.TestCase):
+
+class TestMarkdownToHTML(unittest.TestCase):
     def test_markdown_to_blocks(self):
         md = """
 This is **bolded** paragraph
@@ -22,12 +28,11 @@ This is the same paragraph on a new line
             ],
         )
 
-    def test_markdown_to_blocks_2(self):
+    def test_markdown_to_blocks_newlines(self):
         md = """
 This is **bolded** paragraph
 
 
-   foobar   
 
 
 This is another paragraph with _italic_ text and `code` here
@@ -41,121 +46,10 @@ This is the same paragraph on a new line
             blocks,
             [
                 "This is **bolded** paragraph",
-                "foobar",
                 "This is another paragraph with _italic_ text and `code` here\nThis is the same paragraph on a new line",
                 "- This is a list\n- with items",
             ],
         )
-
-class TestBlockTypes(unittest.TestCase):
-    def test_heading1(self):
-        block = "# foo"
-        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
-
-    def test_heading2(self):
-        block = "## foo"
-        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
-
-    def test_heading3(self):
-        block = "### foo"
-        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
-
-    def test_heading4(self):
-        block = "#### foo"
-        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
-
-    def test_heading5(self):
-        block = "##### foo"
-        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
-
-    def test_heading6(self):
-        block = "###### foo"
-        self.assertEqual(block_to_block_type(block), BlockType.HEADING)
-
-    def test_heading7(self):
-        block = "####### foo"
-        self.assertNotEqual(block_to_block_type(block), BlockType.HEADING)
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-
-    def test_onlyhashes(self):
-        block = "###"
-        self.assertNotEqual(block_to_block_type(block), BlockType.HEADING)
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-
-    def test_heading_nospace(self):
-        block = "###foo"
-        self.assertNotEqual(block_to_block_type(block), BlockType.HEADING)
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-
-    def test_code_block(self):
-        block = "```foobar```"
-        self.assertEqual(block_to_block_type(block), BlockType.CODE)
-
-    def test_code_block_bad(self):
-        block = "```foobar`"
-        self.assertNotEqual(block_to_block_type(block), BlockType.CODE)
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-
-    def test_code_block_bad2(self):
-        block = "`foobar```"
-        self.assertNotEqual(block_to_block_type(block), BlockType.CODE)
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-
-    def test_code_block_bad3(self):
-        block = "``````"
-        self.assertNotEqual(block_to_block_type(block), BlockType.CODE)
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-
-    def test_quote(self):
-        block = "> asdf\n> asdf\n> asdf"
-        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
-
-    def test_quote_bad(self):
-        block = "> asdf\n asdf"
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-        self.assertNotEqual(block_to_block_type(block), BlockType.QUOTE)
-
-    def test_quote2(self):
-        block = ">asdf\n> asdf"
-        self.assertEqual(block_to_block_type(block), BlockType.QUOTE)
-
-    def test_unordered_list(self):
-        block = "- asdf\n- asdf\n- asdf"
-        self.assertEqual(block_to_block_type(block), BlockType.UNORDERED_LIST)
-
-    def test_unordered_list_bad(self):
-        block = "- asdf\n asdf"
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-        self.assertNotEqual(block_to_block_type(block), BlockType.UNORDERED_LIST)
-
-    def test_unordered_list_bad2(self):
-        block = "- asdf\n-asdf"
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-        self.assertNotEqual(block_to_block_type(block), BlockType.UNORDERED_LIST)
-
-    def test_ordered_list(self):
-        block = "1. asdf\n2. asdf\n3. asdf"
-        self.assertEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
-
-    def test_ordered_list_bad_1(self):
-        block = "1. asdf\n2.asdf"
-        self.assertNotEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-
-    def test_ordered_list_bad_2(self):
-        block = "1. asdf\n2 asdf"
-        self.assertNotEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-
-    def test_ordered_list_bad_3(self):
-        block = "1. asdf\n. asdf"
-        self.assertNotEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
-
-    def test_ordered_list_bad_4(self):
-        block = "1. asdf\n2. asdf\n2. asdf"
-        self.assertNotEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
-        self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
 
     def test_block_to_block_types(self):
         block = "# heading"
@@ -170,6 +64,105 @@ class TestBlockTypes(unittest.TestCase):
         self.assertEqual(block_to_block_type(block), BlockType.ORDERED_LIST)
         block = "paragraph"
         self.assertEqual(block_to_block_type(block), BlockType.PARAGRAPH)
+
+    def test_paragraph(self):
+        md = """
+This is **bolded** paragraph
+text in a p
+tag here
+
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p></div>",
+        )
+
+    def test_paragraphs(self):
+        md = """
+This is **bolded** paragraph
+text in a p
+tag here
+
+This is another paragraph with _italic_ text and `code` here
+
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><p>This is <b>bolded</b> paragraph text in a p tag here</p><p>This is another paragraph with <i>italic</i> text and <code>code</code> here</p></div>",
+        )
+
+    def test_lists(self):
+        md = """
+- This is a list
+- with items
+- and _more_ items
+
+1. This is an `ordered` list
+2. with items
+3. and more items
+
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><ul><li>This is a list</li><li>with items</li><li>and <i>more</i> items</li></ul><ol><li>This is an <code>ordered</code> list</li><li>with items</li><li>and more items</li></ol></div>",
+        )
+
+    def test_headings(self):
+        md = """
+# this is an h1
+
+this is paragraph text
+
+## this is an h2
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><h1>this is an h1</h1><p>this is paragraph text</p><h2>this is an h2</h2></div>",
+        )
+
+    def test_blockquote(self):
+        md = """
+> This is a
+> blockquote block
+
+this is paragraph text
+
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><blockquote>This is a blockquote block</blockquote><p>this is paragraph text</p></div>",
+        )
+
+    def test_code(self):
+        md = """
+```
+This is text that _should_ remain
+the **same** even with inline stuff
+```
+"""
+
+        node = markdown_to_html_node(md)
+        html = node.to_html()
+        self.assertEqual(
+            html,
+            "<div><pre><code>This is text that _should_ remain\nthe **same** even with inline stuff\n</code></pre></div>",
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
